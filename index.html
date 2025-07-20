@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Doodle to SVG</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        canvas {
+            border: 2px solid #333;
+            margin-top: 20px;
+            background: white;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+        button, select, input[type=color] {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Doodle to SVG</h1>
+    <div class="controls">
+        <input type="color" id="colorPicker" value="#000000">
+        <select id="strokeWidth">
+            <option value="2">Thin</option>
+            <option value="5">Medium</option>
+            <option value="10">Thick</option>
+        </select>
+        <button onclick="clearCanvas()">Clear</button>
+        <button onclick="downloadSVG()">Download SVG</button>
+    </div>
+    <canvas id="canvas" width="800" height="500"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let paths = [];
+        let currentPath = [];
+
+        const colorPicker = document.getElementById('colorPicker');
+        const strokeWidth = document.getElementById('strokeWidth');
+
+        canvas.addEventListener('mousedown', (e) => {
+            drawing = true;
+            currentPath = [];
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+            currentPath.push({x: e.offsetX, y: e.offsetY});
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!drawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.strokeStyle = colorPicker.value;
+            ctx.lineWidth = strokeWidth.value;
+            ctx.stroke();
+            currentPath.push({x: e.offsetX, y: e.offsetY});
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            drawing = false;
+            paths.push({color: colorPicker.value, width: strokeWidth.value, path: [...currentPath]});
+        });
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            paths = [];
+        }
+
+        function downloadSVG() {
+            let svg = `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500'>`;
+            paths.forEach(p => {
+                if (p.path.length > 0) {
+                    svg += `<path d='M ${p.path.map((point, index) => `${point.x} ${point.y}`).join(' L ')}'
+                             stroke='${p.color}' stroke-width='${p.width}' fill='none' stroke-linecap='round' stroke-linejoin='round' />`;
+                }
+            });
+            svg += `</svg>`;
+
+            const blob = new Blob([svg], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'doodle.svg';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
